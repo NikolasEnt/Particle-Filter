@@ -5,19 +5,40 @@
  *      Author: Tiffany Huang
  */
 
-#include <random>
+#include <random> // Need this for sampling from distributions
 #include <algorithm>
 #include <iostream>
 #include <numeric>
 
 #include "particle_filter.h"
 
+#define NUMBER_OF_PARTICLES 100
+#define EPS 0.0001  // Just a small number
+
+using namespace std;
+
 void ParticleFilter::init(double x, double y, double theta, double std[]) {
 	// TODO: Set the number of particles. Initialize all particles to first position (based on estimates of 
 	//   x, y, theta and their uncertainties from GPS) and all weights to 1. 
 	// Add random Gaussian noise to each particle.
 	// NOTE: Consult particle_filter.h for more information about this method (and others in this file).
-
+	static default_random_engine gen;
+    gen.seed(123);
+    num_particles = NUMBER_OF_PARTICLES; // init number of particles to use
+	// Create normal distributions for x, y and theta.
+	normal_distribution<double> dist_x(x, std[0]);
+	normal_distribution<double> dist_y(y, std[1]);
+	normal_distribution<double> dist_theta(theta, std[2]);
+	particles.resize(num_particles); // Resize the `particles` vector to fit desired number of particles
+	double init_weight = 1.0/num_particles; // To save computation
+	for (int i = 0; i < num_particles; i++){
+		particles[i].id = i;
+		particles[i].x = dist_x(gen);
+		particles[i].y = dist_y(gen);
+		particles[i].theta = dist_theta(gen);
+		particles[i].weight = init_weight;
+	}	
+	is_initialized = true;
 }
 
 void ParticleFilter::prediction(double delta_t, double std_pos[], double velocity, double yaw_rate) {
@@ -25,6 +46,28 @@ void ParticleFilter::prediction(double delta_t, double std_pos[], double velocit
 	// NOTE: When adding noise you may find std::normal_distribution and std::default_random_engine useful.
 	//  http://en.cppreference.com/w/cpp/numeric/random/normal_distribution
 	//  http://www.cplusplus.com/reference/random/default_random_engine/
+	static default_random_engine gen;
+    gen.seed(321);
+    normal_distribution<double> dist_x(0.0, std_pos[0]);
+	normal_distribution<double> dist_y(0.0, std_pos[1]);
+	normal_distribution<double> dist_theta(0.0, std_pos[2]);
+	for (int i = 0; i < num_particles; i++){
+        if (fabs(yaw_rate) < EPS){
+            particles[i].x += velocity * delta_t * cos(particles[i].theta);
+            particles[i].y += velocity * delta_t * sin(particles[i].theta);
+            // particles[i].theta unchanged if yaw_rate is too small
+        }
+        else{
+            const double theta_new = particles[i].theta + yaw_rate * delta_t;
+            particles[i].x += (velocity/yaw_rate) * (sin(theta_new) - sin(particles[i].theta));
+            particles[i].y += (velocity/yaw_rate) * (cos(theta_new) + cos(particles[i].theta));
+            particles[i].theta = theta_new;
+        }
+        // Add random Gaussian noise
+        particles[i].x += dist_x(gen);
+        particles[i].y += dist_y(gen);
+        particles[i].theta += dist_theta(gen);
+	}
 
 }
 
@@ -49,6 +92,7 @@ void ParticleFilter::updateWeights(double sensor_range, double std_landmark[],
 	//   3.33. Note that you'll need to switch the minus sign in that equation to a plus to account 
 	//   for the fact that the map's y-axis actually points downwards.)
 	//   http://planning.cs.uiuc.edu/node99.html
+	
 }
 
 void ParticleFilter::resample() {
