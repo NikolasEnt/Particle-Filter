@@ -1,5 +1,5 @@
 # Kidnapped Vehicle
-This Project is the eighth task (Project 3 of Term 2) of the Udacity Self-Driving Car Nanodegree program. The main goal of the project is implement a 2D Particle filter for a localization task in C++.
+This Project is the eighth task (Project 3 of Term 2) of the Udacity Self-Driving Car Nanodegree program. The main goal of the project is to implement a 2D Particle filter for a localization task in C++.
 
 The project was created with the Udacity [Starter Code](https://github.com/udacity/CarND-Kidnapped-Vehicle-Project).
 
